@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>SOS HELI — Inventaire Unique</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#0f172a; --card:#1e293b; --card2:#243449; --line:#334155;
+  --txt:#e2e8f0; --muted:#94a3b8; --ok:#22c55e; --warn:#f97316; --bad:#ef4444; --dim:#64748b; --blue:#38bdf8;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px}
+body{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.wrap{max-width:640px;margin:0 auto;padding:0 12px}
+header{position:sticky;top:0;z-index:20;background:rgba(15,23,42,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:10px 0 8px}
+header .hrow{display:flex;align-items:center;gap:10px}
+header h1{font-size:17px;margin:0;flex:1;line-height:1.2}
+header h1 small{display:block;font-size:11px;color:var(--muted);font-weight:400}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted);white-space:nowrap}
+.pill.ok{color:var(--ok);border-color:#14532d}
+.pill.err{color:var(--bad);border-color:#7f1d1d}
+.pill.warn{color:var(--warn);border-color:#7c2d12}
+#recap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:10px 0 4px;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px}
+#recap b{color:var(--txt)}
+#recap .eg-pos{color:var(--blue)} #recap .eg-neg{color:var(--bad)} #recap .eg-zero{color:var(--ok)}
+#stats{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.stat{flex:1;min-width:72px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px;text-align:center;cursor:pointer;border-width:2px}
+.stat .n{font-size:20px;font-weight:700}
+.stat .l{font-size:11px;color:var(--muted)}
+.stat.on{border-color:#38bdf8;background:var(--card2)}
+.stat.k-manque .n{color:var(--bad)} .stat.k-exces .n{color:var(--blue)}
+.stat.k-conforme .n{color:var(--ok)} .stat.k-nv .n{color:var(--dim)}
+.bar{display:flex;gap:6px;margin:8px 0;align-items:center}
+#q{flex:1;background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:16px}
+select{background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px;font-size:14px;max-width:46%}
+.sech{display:flex;align-items:center;gap:8px;margin:16px 0 6px;cursor:pointer;user-select:none}
+.sech h3{margin:0;font-size:14px;color:#7dd3fc;flex:0 1 auto}
+.sech .cnt{font-size:11px;color:var(--muted)}
+.sech .tri{margin-left:auto;font-size:12px;color:var(--dim)}
+.item{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--dim);border-radius:12px;padding:10px 12px;margin:6px 0;display:flex;gap:10px;align-items:center}
+.item.k-manque{border-left-color:var(--bad)} .item.k-exces{border-left-color:var(--blue)}
+.item.k-conforme{border-left-color:var(--ok)} .item.k-nv{border-left-color:var(--dim)}
+.item .txt{flex:1;min-width:0;cursor:pointer}
+.item .mat{font-size:14px;font-weight:600;overflow-wrap:break-word}
+.item .meta{font-size:12px;color:var(--muted);margin-top:2px;overflow-wrap:break-word}
+.item .num{font-size:12px;font-weight:700;text-align:right;white-space:nowrap}
+.num .reel{color:var(--muted);font-weight:400}
+.num .ec{display:block;font-size:14px}
+.ec.pos{color:var(--blue)} .ec.neg{color:var(--bad)} .ec.zero{color:var(--ok)}
+.btn{background:#334155;border:none;color:var(--txt);border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer}
+.btn.pri{background:#0ea5e9;font-weight:700}
+.btn.go{background:var(--ok);font-weight:700;color:#052e16}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.btn.danger{background:#7f1d1d}
+.btn.big{width:100%;padding:13px;font-size:16px}
+.chkbtn{flex:0 0 auto;width:44px;height:44px;border-radius:12px;border:none;background:#14532d;color:#bbf7d0;font-size:19px;cursor:pointer}
+#addBtn{position:fixed;right:calc(16px + env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;background:#0ea5e9;color:#04202e;font-size:26px;border:none;font-weight:700;z-index:15;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+#backupCard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:18px 0}
+#backupCard .syncline{font-size:12px;color:var(--muted);margin:4px 0 10px}
+#backupCard details{margin-top:10px}
+#backupCard summary{cursor:pointer;font-size:13px;color:var(--muted)}
+label.f{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+input.f,textarea.f{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px;font-size:16px}
+.frow{display:flex;gap:8px}.frow>*{flex:1}
+.locgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.locgrid>div{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px}
+.locgrid label{display:block;font-size:11px;color:var(--muted);margin:0 0 4px}
+.locgrid input{width:100%;background:transparent;border:none;color:var(--txt);font-size:17px;font-weight:700;padding:2px}
+#sheet{position:fixed;inset:0;background:rgba(2,6,23,.65);z-index:30;display:none}
+#sheet.open{display:block}
+#jSheet{position:fixed;inset:0;background:rgba(2,6,23,.65);z-index:32;display:none}
+#jSheet.open{display:block}
+#sheetBox,#jSheetBox{position:absolute;left:0;right:0;bottom:0;max-height:92dvh;overflow-y:auto;background:var(--bg);border-radius:18px 18px 0 0;border-top:1px solid var(--line);padding:14px 16px calc(18px + env(safe-area-inset-bottom))}
+#alerts{margin:10px 0}
+.alertbar{background:#7c2d12;border:1px solid var(--warn);border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:8px}
+#sheetBox h2{margin:0 0 4px;font-size:16px}
+#sheetBox .close{position:absolute;top:10px;right:12px}
+#preview{font-size:13px;background:var(--card);border-radius:10px;padding:8px 10px;margin:10px 0}
+.hist{font-size:12px;color:var(--muted);margin:2px 0}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));background:#0b1222;border:1px solid var(--line);color:var(--txt);padding:11px 16px;border-radius:12px;font-size:14px;z-index:50;display:none;max-width:92%;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+#toast button{margin-left:10px;background:#0ea5e9;border:none;border-radius:8px;padding:5px 10px;color:#04202e;font-weight:700;font-size:13px}
+#empty{color:var(--muted);text-align:center;padding:26px 0;font-size:14px}
+</style>
+</head>
+<body>
+<header><div class="wrap"><div class="hrow">
+<h1>🚁 SOS HELI — Inventaire Unique<small id="hSub">Inventaire unique SOS HÉLIPORTE</small></h1>
+<button class="btn ghost" onclick="openJournal()" title="Journal des modifications" style="padding:6px 10px">🕘</button>
+<span class="pill" id="drivePill">☁️ —</span>
+</div></div></header>
+<main class="wrap">
+  <div id="alerts"></div>
+  <div id="recap"></div>
+  <div id="stats"></div>
+  <div class="bar">
+    <input id="q" type="search" placeholder="🔍 Rechercher (libellé, réf NNO, observation…)">
+    <select id="secSel"><option value="">Toutes sections</option></select>
+  </div>
+  <div id="list"></div>
+  <div id="backupCard"></div>
+</main>
+<button id="addBtn" onclick="openItem(null)">＋</button>
+<div id="sheet" onclick="if(event.target.id==='sheet')closeSheet()">
+  <div id="sheetBox">
+    <button class="btn ghost close" onclick="closeSheet()">✕</button>
+    <h2 id="shTitle">Référence</h2>
+    <div id="preview"></div>
+    <label class="f">Section</label><input class="f" id="fSec" list="secList"><datalist id="secList"></datalist>
+    <label class="f">Référence NNO / MAT</label><input class="f" id="fNno">
+    <label class="f">Libellé *</label><input class="f" id="fLib">
+    <label class="f">Total chargé (théorique)</label><input class="f" id="fD" type="number" min="0" step="1" inputmode="numeric">
+    <label class="f">Répartition réelle par lieu</label>
+    <div class="locgrid" id="locGrid"></div>
+    <label class="f">Date de contrôle</label><input class="f" id="fDc" type="date">
+    <label class="f">Observation</label><textarea class="f" id="fObs" rows="2"></textarea>
+    <div style="height:12px"></div>
+    <button class="btn go big" onclick="saveItem()">💾 Enregistrer</button>
+    <div style="height:8px"></div>
+    <button class="btn ghost big" id="delBtn" onclick="deleteItem()">🗑️ Supprimer cette référence</button>
+    <div style="height:16px"></div>
+    <div id="ctlZone">
+      <h2 style="font-size:15px">✅ Enregistrer une vérification</h2>
+      <label class="f">Date de la vérification</label><input class="f" id="ctlDate" type="date">
+      <label class="f">Note (optionnel)</label><input class="f" id="ctlNote">
+      <div style="height:8px"></div>
+      <button class="btn pri big" onclick="doVerif()">✅ Vérification effectuée</button>
+      <div style="height:10px"></div>
+      <div id="histBox"></div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="jSheet" onclick="if(event.target.id==='jSheet')closeJournal()">
+  <div id="jSheetBox">
+    <button class="btn ghost close" onclick="closeJournal()">✕</button>
+    <h2>🕘 Journal des modifications</h2>
+    <div style="font-size:12px;color:var(--muted);margin:4px 0 10px">Toutes tes modifications sont horodatées ici — exporte le CSV et répercute-les dans l'Excel d'origine (autre ordinateur).</div>
+    <button class="btn pri big" onclick="exportJournalCsv()">📄 Exporter le journal (CSV pour Excel)</button>
+    <div style="height:8px"></div>
+    <button class="btn danger" onclick="clearJournal()">🗑️ Effacer le journal</button>
+    <div style="height:12px"></div>
+    <div id="jList"></div>
+  </div>
+</div>
+<script>
+/* --------- diagnostic : toute erreur JS s'affiche en bannière rouge --------- */
+window.addEventListener("error", function(ev){
+  errShow("Erreur : " + (ev.message || "inconnue") + (ev.filename ? " @" + String(ev.filename).split("/").pop() + ":" + ev.lineno : ""));
+});
+window.addEventListener("unhandledrejection", function(ev){
+  var r = ev && ev.reason;
+  errShow("Erreur asynchrone : " + (r && r.message ? r.message : String(r)));
+});
+function errShow(msg){
+  var b = document.getElementById("errBar");
+  if(!b){
+    b = document.createElement("div"); b.id = "errBar";
+    b.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;padding:10px;font:13px sans-serif;line-height:1.4;white-space:pre-wrap";
+    (document.body || document.documentElement).appendChild(b);
+  }
+  b.style.display = "block";
+  b.textContent = "⚠️ " + msg + " — fais une capture et envoie-la à l'assistant";
+}
+/* ================= INVENTAIRE UNIQUE SOS HELI — v1 ================= */
+var APP_VERSION = "v1";
+var SW_CACHE = "sos-heli-inventaire-v1";
+var KEY = "sos-heli-inventaire-v1";
+var MAJ_ORIGINE = "24/08/2026"; /* cellule Q5 de l'Excel d'origine */
+var LOCS = [
+  { k:"CMDIH", s:"CMDIH" }, { k:"VRCG", s:"VRCG" }, { k:"VHR", s:"VHR" }, { k:"VL 75", s:"VL 75" },
+  { k:"CM IBN LVN", s:"LVN" }, { k:"CM IBN GIMAE", s:"GIMAE" }, { k:"GRANDE SOUTE", s:"G.SOUTE" },
+  { k:"SOUTE HELI", s:"S.HELI" }, { k:"SOUTE GIMAE", s:"S.GIMAE" }, { k:"BUREAU", s:"BUR" }
+];
+var SEED = [{"id":"i001","sec":"DOCUMENTATION","nno":"HN 005 0007","lib":"ATLAS DFCI","d":4,"loc":[1,2,1,null,null,null,null,null,null,null],"dc":"2026-09-03","obs":"ATLAS\\scan_20251113_082408.pdf","hist":[]},{"id":"i002","sec":"DOCUMENTATION","nno":"HN 005 0008","lib":"ATLAS URBAIN","d":9,"loc":[2,2,2,1,1,1,null,null,null,null],"dc":"2026-09-03","obs":"ATLAS\\scan_20251113_082408.pdf","hist":[]},{"id":"i003","sec":"TRANSMISSION","nno":"HN 002 1444","lib":"VDM EMETTEUR RECEPTEUR PORTATIF  (icom marine)","d":2,"loc":[null,null,null,null,null,null,null,null,null,2],"dc":"2026-09-03","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i004","sec":"TRANSMISSION","nno":"HN 002 1469","lib":"VDM EMETTEUR RECEPTEUR MOBILE 80","d":1,"loc":[null,1,null,null,null,null,null,null,null,null],"dc":"2026-09-03","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i005","sec":"TRANSMISSION","nno":"HN 002 1479","lib":"VDM TELEPHONE","d":2,"loc":[null,null,null,null,null,null,null,null,null,2],"dc":"2026-09-03","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i006","sec":"TRANSMISSION","nno":"HN 002 1485","lib":"VDM TELEPHONE GSM PORTABLE","d":1,"loc":[null,null,null,null,null,null,null,null,null,1],"dc":"2026-09-03","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i007","sec":"TRANSMISSION","nno":"HN 002 1516 (2011)","lib":"VDM CASQUE MICRO","d":1,"loc":[null,null,null,null,null,7,null,1,null,1],"dc":null,"obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i008","sec":"TRANSMISSION","nno":"HN 002 1536","lib":"VDM EMETTEUR RECEPTEUR PORTATIF 80 MHZ","d":3,"loc":[null,null,null,null,null,null,null,null,null,4],"dc":"2022-11-25","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i009","sec":"TRANSMISSION","nno":"HN 002 1539","lib":"VDM CHARGEUR MULTIPLE","d":1,"loc":[null,null,null,null,null,null,null,null,null,0],"dc":"2022-11-25","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i010","sec":"TRANSMISSION","nno":"HN 010 0162 (2010)","lib":"VDM EMETTEUR/RECEPTEUR PORTATIF TPH700","d":17,"loc":[null,null,null,null,null,null,null,null,null,16],"dc":"2022-11-25","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i011","sec":"TRANSMISSION","nno":"HN 011 0027","lib":"VDM CHARGEUR MULTIPLE EADS","d":3,"loc":[null,null,null,null,null,null,null,null,null,2],"dc":"2022-11-25","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i012","sec":"TRANSMISSION","nno":"HN 012 0013","lib":"ECRAN","d":4,"loc":[null,null,null,null,null,null,null,null,null,4],"dc":"2022-11-25","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i013","sec":"TRANSMISSION","nno":"HN 012 0014","lib":"UNITE CENTRALE","d":2,"loc":[null,null,null,null,null,null,null,null,null,2],"dc":"2022-11-25","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i014","sec":"TRANSMISSION","nno":"HN 012 0015","lib":"IMPRIMANTE","d":1,"loc":[null,null,null,null,null,null,null,null,null,1],"dc":"2022-11-25","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i015","sec":"TRANSMISSION","nno":"HN 012 0016","lib":"ORDINATEUR PORTABLE","d":1,"loc":[null,null,null,null,null,null,null,null,null,1],"dc":"2022-11-25","obs":"..\\TRANS - INFO\\inventaire RADIO.xlsx","hist":[]},{"id":"i016","sec":"INCENDIE","nno":"HN 002 0042","lib":"JUMELLES 7X50","d":1,"loc":[null,1,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i017","sec":"INCENDIE","nno":"HN 002 0593","lib":"VDM TRANSPALETTE","d":3,"loc":[null,null,null,null,1,1,1,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i018","sec":"INCENDIE","nno":"HN 002 0677","lib":"CAISSE PALETTE","d":10,"loc":[null,null,null,null,14,null,12,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i019","sec":"INCENDIE","nno":"HN 002 0953","lib":"VESTE DE TREILLIS","d":20,"loc":[null,null,null,null,null,null,null,null,13,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i020","sec":"INCENDIE","nno":"HN 002 0954","lib":"VDM PANTALON DE TREILLIS","d":20,"loc":[null,null,null,null,null,null,null,null,13,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i021","sec":"INCENDIE","nno":"HN 002 0969","lib":"WADERS","d":2,"loc":[null,null,null,null,null,null,2,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i022","sec":"INCENDIE","nno":"HN 002 1516 (2011)","lib":"VDM CASQUE MICRO","d":6,"loc":[null,null,null,null,null,0,null,null,null,null],"dc":null,"obs":null,"hist":[]},{"id":"i023","sec":"INCENDIE","nno":"HN 002 2934","lib":"VDM GOUTTIERE BELLISLE","d":3,"loc":[null,null,null,null,null,null,3,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i024","sec":"INCENDIE","nno":"HN 002 3174","lib":"VDM CHARGEUR DE BATTERIES","d":1,"loc":[null,null,null,null,null,null,1,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i025","sec":"INCENDIE","nno":"HN 002 3662 (2011)","lib":"VDM DEBROUSSAILLEUSE","d":2,"loc":[1,null,null,null,null,null,1,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i026","sec":"INCENDIE","nno":"HN 002 3663","lib":"VDM CAISSE A OUTILS","d":1,"loc":[null,1,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i027","sec":"INCENDIE","nno":"HN 002 3664","lib":"VDM CITERNE SOUPLE 800L","d":6,"loc":[4,null,null,null,null,null,2,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i028","sec":"INCENDIE","nno":"HN 002 3670","lib":"RACCORD DE REDUCTION","d":3,"loc":[4,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i029","sec":"INCENDIE","nno":"HN 002 3677","lib":"PROJECTEUR ERCUL","d":2,"loc":[null,null,null,null,10,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i030","sec":"INCENDIE","nno":"HN 002 3678","lib":"JUMBOX","d":2,"loc":[null,null,null,null,null,null,2,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i031","sec":"INCENDIE","nno":"HN 002 3681","lib":"ROBINET DUBOIS","d":18,"loc":[10,null,null,7,null,null,1,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i032","sec":"INCENDIE","nno":"HN 002 3684","lib":"SAC COMMANDO","d":7,"loc":[4,null,null,1,null,null,1,1,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i033","sec":"INCENDIE","nno":"HN 002 3691","lib":"VDM TRONCONNEUSE","d":3,"loc":[null,1,null,null,null,null,2,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i034","sec":"INCENDIE","nno":"HN 002 3693","lib":"MOTO POMPE COMMANDO","d":8,"loc":[2,null,null,null,null,null,7,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i035","sec":"INCENDIE","nno":"HN 002 3695","lib":"PALAN ELECTRIQUE","d":1,"loc":[1,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i036","sec":"INCENDIE","nno":"HN 002 3701","lib":"DIVISION VANNES","d":2,"loc":[2,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i037","sec":"INCENDIE","nno":"HN 002 3711","lib":"VESTE HR MARINE","d":39,"loc":[null,null,null,null,null,null,null,36,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i038","sec":"INCENDIE","nno":"HN 002 3712","lib":"BLOUSON POLAIRE","d":8,"loc":[null,null,null,null,null,null,null,8,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i039","sec":"INCENDIE","nno":"HN 002 3713","lib":"CLAIE DE PORTAGE POUR JERRICAN","d":4,"loc":[null,null,null,null,null,null,null,4,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i040","sec":"INCENDIE","nno":"HN 002 3714","lib":"TUYAU 45 40 M","d":33,"loc":[15,null,null,null,null,null,14,4,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i041","sec":"INCENDIE","nno":"HN 002 5228 (2011)","lib":"VDM COUPE BOULON (PINCE MONSEIGNEUR)","d":1,"loc":[null,1,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i042","sec":"INCENDIE","nno":"HN 002 5237","lib":"VDM ETRANGLEUR UNIVERSEL","d":3,"loc":[2,null,null,null,null,null,1,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i043","sec":"INCENDIE","nno":"HN 002 5250","lib":"VDM EXPLOSIMETRE","d":2,"loc":[null,null,null,null,2,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i044","sec":"INCENDIE","nno":"HN 002 5273","lib":"DIVISION 65X65X2X40 (DIVISION MIXTE)","d":3,"loc":[2,null,null,null,null,null,1,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i045","sec":"INCENDIE","nno":"HN 002 5296","lib":"VENTILATEUR HYDRAULIQUE","d":1,"loc":[null,null,null,null,1,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i046","sec":"INCENDIE","nno":"HN 002 5303 (2011)","lib":"VDM CLE ARTICULEE DE BI (CLE DE BARRAGE)","d":1,"loc":[1,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i047","sec":"INCENDIE","nno":"HN 002 5311 (2010)","lib":"VDM TUYAU 70X40","d":20,"loc":[20,null,null,null,null,null,10,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i048","sec":"INCENDIE","nno":"HN 002 5312","lib":"VANNE A PURGE","d":1,"loc":[1,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i049","sec":"INCENDIE","nno":"HN 002 5314","lib":"INJECTEUR PROPORTIONNEUR","d":2,"loc":[null,null,null,null,2,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i050","sec":"INCENDIE","nno":"HN 002 5321","lib":"LANCE A DEBIT VARIABLE 500/600","d":7,"loc":[null,null,null,null,4,2,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i051","sec":"INCENDIE","nno":"HN 002 5325","lib":"DIVISION 45X2X23","d":5,"loc":[6,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i052","sec":"INCENDIE","nno":"HN 002 5326 (2010)","lib":"VDM LANCE DE 23 HUDJET","d":4,"loc":[4,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i053","sec":"INCENDIE","nno":"HN 002 5327","lib":"TUYAU 70X20","d":11,"loc":[null,null,null,null,7,null,4,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i054","sec":"INCENDIE","nno":"HN 002 5328","lib":"RETENUE","d":1,"loc":[null,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i055","sec":"INCENDIE","nno":"HN 002 5341","lib":"PHARE PILOTE (SUR ACCUS)","d":1,"loc":[null,null,null,null,1,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i056","sec":"INCENDIE","nno":"HN 002 5342 (2011)","lib":"VDM TUYAU 23X20","d":24,"loc":[18,null,null,null,null,null,16,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i057","sec":"INCENDIE","nno":"HN 002 5343 (2010)","lib":"VDM TUYAU 45X20","d":58,"loc":[16,null,null,null,16,null,26,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i058","sec":"INCENDIE","nno":"HN 002 5344","lib":"GILET PORTEUR D EAU","d":4,"loc":[6,null,null,null,null,null,3,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i059","sec":"INCENDIE","nno":"HN 002 5356","lib":"HACHE","d":1,"loc":[null,1,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i060","sec":"INCENDIE","nno":"HN 002 5365","lib":"GENERATEUR A MOUSSE","d":1,"loc":[null,null,null,null,1,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i061","sec":"INCENDIE","nno":"HN 002 5393 (2010)","lib":"VDM CLE FEDERALE","d":1,"loc":[1,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i062","sec":"INCENDIE","nno":"HN 002 5395","lib":"OUTIL DE MANUTENTION ET DE FORCE","d":1,"loc":[null,1,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i063","sec":"INCENDIE","nno":"HN 002 5402","lib":"VDM CONE POLYMOUSSE","d":4,"loc":[null,null,null,null,4,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i064","sec":"INCENDIE","nno":"HN 002 5413","lib":"ROBINET PROLONGATEUR 45X45 (ROBINET MONO)","d":6,"loc":[5,null,null,null,null,null,4,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i065","sec":"INCENDIE","nno":"HN 002 5415","lib":"VDM GROUPE ELECTROGENE 2KW/6KW/12KW","d":5,"loc":[null,null,null,null,2,null,3,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i066","sec":"INCENDIE","nno":"HN 002 5417","lib":"COMMANDE","d":4,"loc":[null,null,null,null,3,null,1,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i067","sec":"INCENDIE","nno":"HN 002 5428 (2011)","lib":"VDM EXTINCTEUR A POUDRE DE 6KG","d":1,"loc":[1,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i068","sec":"INCENDIE","nno":"HN 002 5429 (2011)","lib":"VDM CLAIE DE PORTAGE POUR TUYAUX","d":23,"loc":[10,null,null,null,3,null,10,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i069","sec":"INCENDIE","nno":"HN 002 5444","lib":"TURBOPOMPE","d":2,"loc":[null,null,null,null,2,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i070","sec":"INCENDIE","nno":"HN 002 5448","lib":"PARA MASK","d":10,"loc":[3,3,2,null,null,null,3,2,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i071","sec":"INCENDIE","nno":"HN 002 5521","lib":"APPAREIL + MASQUE A CIRCUIT FERME - BG 4","d":34,"loc":[null,null,null,null,20,14,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i072","sec":"INCENDIE","nno":"HN 002 5540","lib":"VDM CAMERA THERMIQUE","d":2,"loc":[null,null,null,null,2,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i073","sec":"INCENDIE","nno":"HN 002 8697","lib":"VDM ASPIRATEUR DE MUCOSITES MANUEL","d":3,"loc":[null,null,null,null,null,null,3,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i074","sec":"INCENDIE","nno":"HN 004 0071","lib":"VDM CHARGEUR DEMARREUR","d":1,"loc":[null,null,null,null,null,null,1,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i075","sec":"INCENDIE","nno":"HN 004 0475","lib":"VDM CORDE DESCENTE RAPIDE MARLOW","d":2,"loc":[null,null,null,null,null,2,null,null,1,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i076","sec":"INCENDIE","nno":"HN 007 0012","lib":"VDM VENTILATEUR THERMIQUE","d":2,"loc":[null,null,null,null,2,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i077","sec":"INCENDIE","nno":"HN 007 0132","lib":"VDM TABLE PLIANTE","d":2,"loc":[null,null,null,null,null,null,null,2,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i078","sec":"INCENDIE","nno":"HN 007 0318","lib":"VDM BALISE DETECTEUR D'IMMOBILITE (BSL)","d":12,"loc":[null,null,null,null,12,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i079","sec":"INCENDIE","nno":"HN 008 0016 (2010)","lib":"VDM ELECTROPOMPE D'EPUISEMENT","d":2,"loc":[null,null,null,null,2,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i080","sec":"INCENDIE","nno":"HN 008 0035","lib":"SAC PREMIER SECOURS","d":4,"loc":[null,null,null,null,null,1,3,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i081","sec":"INCENDIE","nno":"HN 008 0036","lib":"VDM SAC OXYGENE DYMATEX","d":3,"loc":[null,null,null,null,null,null,3,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i082","sec":"INCENDIE","nno":"HN 008 0269","lib":"VDM DEFIBRILLATEUR SEMI-AUTOMATIQUE LP 1000","d":4,"loc":[null,1,null,null,null,null,3,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i083","sec":"INCENDIE","nno":"HN 009 0067","lib":"VDM MEUBLE BAS A RIDEAUX","d":1,"loc":[null,null,null,null,null,null,null,null,null,1],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i084","sec":"INCENDIE","nno":"HN 009 0082","lib":"VDM VENTILATEUR ELECTRIQUE","d":8,"loc":[null,null,null,null,6,null,2,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i085","sec":"INCENDIE","nno":"HN 009 0086 (2011)","lib":"VDM OXYMETRE DE POULS","d":4,"loc":[null,1,null,null,null,3,3,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i086","sec":"INCENDIE","nno":"HN 010 0115 (2011)","lib":"VDM THERMOMETRE TYMPANIQUE","d":3,"loc":[null,null,null,null,null,null,3,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i087","sec":"INCENDIE","nno":"HN 011 0062","lib":"VDM CLE DFCI","d":1,"loc":[null,1,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i088","sec":"INCENDIE","nno":"HN 012 0065","lib":"VDM CITERNE SOUPLE 500 LITRES","d":7,"loc":[2,null,null,null,null,null,5,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i089","sec":"INCENDIE","nno":"HN 012 0066","lib":"VDM CITERNE SOUPLE 1000 LITRES","d":4,"loc":[2,null,null,null,null,null,2,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i090","sec":"INCENDIE","nno":"HN 012 0082","lib":"VDM GROUPE ELECTRO PORTATIF POUR ECLAIRAGE","d":3,"loc":[null,null,null,null,null,null,3,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i091","sec":"INCENDIE","nno":"HN 015 0008","lib":"LIGNE DE VIE","d":2,"loc":[null,null,null,null,1,1,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i092","sec":"INCENDIE","nno":"HN 015 0055","lib":"MOTOPOMPES THERMIQUE/CHARRIOT TRANS","d":2,"loc":[null,null,null,null,2,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i093","sec":"INCENDIE","nno":"HN 015 0557","lib":"CIV LANCE D INERTAGE","d":2,"loc":[null,null,null,null,2,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i094","sec":"INCENDIE","nno":"HN 017 0002","lib":"GERBEUR MANUEL ACIER","d":1,"loc":[null,null,null,null,1,1,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i095","sec":"INCENDIE","nno":"HN 017 0037","lib":"VALISE RACCORD OTAN","d":1,"loc":[null,null,null,null,1,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i096","sec":"INCENDIE","nno":"HN 018 0110","lib":"BANC PLIANT","d":2,"loc":[null,null,null,null,null,null,null,2,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i097","sec":"INCENDIE","nno":"HN 019 0057","lib":"COMBINAISON FRIS AVEC ACCESSOIRES","d":40,"loc":[null,null,null,null,null,25,null,null,25,null],"dc":"2022-11-25","obs":"..\\TYPHOON\\TENUES ETANCHES TYPHOON 50.xls","hist":[]},{"id":"i098","sec":"INCENDIE","nno":"HN 020 0057","lib":"VDM MOTO POMPE FLOTTANTE","d":1,"loc":[1,null,null,null,null,null,1,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i099","sec":"INCENDIE","nno":"HN 020 0058","lib":"VDM MOTO POMPE GRANDE CAPACITE","d":1,"loc":[1,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i100","sec":"INCENDIE","nno":"HN 020 0080","lib":"PLANCHE FAST BOARD","d":2,"loc":[null,null,null,null,null,2,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i101","sec":"INCENDIE","nno":"HN 020 0081","lib":"CASQUE DE PROTECTION BALISTIQUE FELIN","d":23,"loc":[null,null,null,null,null,null,null,null,23,null],"dc":"2022-11-25","obs":"..\\CONTROLE PERIODIQUE\\PROTECTION BALISTIQUE\\casque balistique FELIN.xlsx","hist":[]},{"id":"i102","sec":"INCENDIE","nno":"HN 020 0095","lib":"TRONCONEUSE SUR ACCUS","d":1,"loc":[null,2,null,null,null,null,1,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i103","sec":"INCENDIE","nno":"HN 020 0134","lib":"VENTILATEUR SUR ACCUS","d":3,"loc":[null,null,null,null,2,1,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i104","sec":"INCENDIE","nno":"HN 021 0136","lib":"GILET PARE BALLE THOR","d":23,"loc":[null,null,null,null,null,null,null,null,23,null],"dc":"2022-11-25","obs":"..\\CONTROLE PERIODIQUE\\PROTECTION BALISTIQUE\\GILET PARE BALLE.xlsx","hist":[]},{"id":"i105","sec":"INCENDIE","nno":"HN 022 0050","lib":"TRANSPALETTE PESEUR","d":1,"loc":[null,null,null,null,null,null,1,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i106","sec":"INCENDIE","nno":"HN 022 0069","lib":"CEINTURON ATTILA","d":25,"loc":[null,null,null,null,null,23,null,null,2,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i107","sec":"INCENDIE","nno":"HN 023 0028","lib":"LONGE D'ARRIMAGE COURTE","d":24,"loc":[null,null,null,null,null,23,null,null,1,null],"dc":null,"obs":null,"hist":[]},{"id":"i108","sec":"INCENDIE","nno":"HN 023 0029","lib":"LONGE D'ARRIMAGE LONGUE","d":1,"loc":[null,null,null,null,null,null,null,null,1,null],"dc":null,"obs":null,"hist":[]},{"id":"i109","sec":"INCENDIE","nno":"EMPM HN 002 0438","lib":"GROSSE PINCE (PIED DE BICHE)","d":1,"loc":[1,null,null,null,null,null,null,null,null,null],"dc":"2022-11-25","obs":null,"hist":[]},{"id":"i110","sec":"INCENDIE","nno":"NEANT","lib":"TREILLIS GIMAE","d":0,"loc":[null,null,null,null,null,null,null,null,300,null],"dc":null,"obs":"..\\..\\..\\..\\PERSONNEL DIH\\PERSONNEL DIH 2026\\SUIVI SOS_HELI PERSONNEL.xlsx","hist":[]},{"id":"i111","sec":"INCENDIE","nno":"8412-14-4457925","lib":"TENUE DE TRANSIT MARINE","d":0,"loc":[null,null,null,null,null,null,35,null,null,null],"dc":null,"obs":null,"hist":[]},{"id":"i112","sec":"INCENDIE","nno":"NEANT","lib":"LANCE HYDROPEN","d":0,"loc":[null,null,null,null,1,null,null,null,null,null],"dc":null,"obs":null,"hist":[]},{"id":"i113","sec":"INCENDIE","nno":"NEANT","lib":"GILET FUSCO BGFM 17","d":0,"loc":[null,null,null,null,null,25,null,null,25,null],"dc":null,"obs":"..\\CONTROLE PERIODIQUE\\GIMAE\\BRASSIERES\\GILETS FUSCO GIMAE\\LISTE GILET DE SAUVETAGE-BGFM17-SOS HELI(Récupération automatique).xls","hist":[]},{"id":"i114","sec":"INCENDIE","nno":"NEANT","lib":"GILET ALOTECH 275N","d":0,"loc":[null,null,null,null,null,null,60,null,null,null],"dc":null,"obs":"..\\CONTROLE PERIODIQUE\\GIMAE\\BRASSIERES\\GILETS N250 ALOTECH CAPINAV\\LISTE GILET DE SAUVETAGE 275N HELI.xls","hist":[]},{"id":"i115","sec":"INCENDIE","nno":"NEANT","lib":"TENUE DE FORESTAGE","d":0,"loc":[null,1,null,null,null,null,null,null,null,null],"dc":null,"obs":null,"hist":[]}];
+
+/* ---------------- état ---------------- */
+var state = null;
+function defaultState(){
+  return { v:1, items:JSON.parse(JSON.stringify(SEED)), tombs:{}, log:[],
+    cfg:{ collapsed:{}, statFilter:"all", secFilter:"", q:"", driveAuto:true,
+          dCid:"", dSecret:"", dRefresh:"", dFolder:"taffbmpm" },
+    driveSyncedAt:0 };
+}
+function load(){
+  try{
+    var raw = localStorage.getItem(KEY);
+    if(raw){ state = JSON.parse(raw); if(!state || !Array.isArray(state.items)) throw 0; }
+    else { state = defaultState(); persist(); }
+  }catch(e){ state = defaultState(); persist(); }
+  if(!state.cfg) state.cfg = defaultState().cfg;
+  if(!state.tombs) state.tombs = {};
+  if(!state.log) state.log = [];
+  state.items.forEach(function(it){
+    if(!Array.isArray(it.loc)) it.loc = [];
+    while(it.loc.length < LOCS.length) it.loc.push(null);
+    if(!it.hist) it.hist = [];
+  });
+  primeShadow();
+}
+
+/* ---------------- dates ---------------- */
+function today(){
+  var d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function fmtDate(iso){
+  if(!iso) return "—";
+  var m = {1:"janv",2:"févr",3:"mars",4:"avr",5:"mai",6:"juin",7:"juil",8:"août",9:"sept",10:"oct",11:"nov",12:"déc"};
+  var p = iso.split("-");
+  return (+p[2]) + " " + m[+p[1]] + " " + p[0];
+}
+
+/* ---------------- calcul (formules de l'Excel : O=SUM(E:N), P=O-D) ---------------- */
+function reelOf(it){
+  var s = 0;
+  (it.loc || []).forEach(function(x){ if(x) s += x; });
+  return s;
+}
+function ecartOf(it){ return reelOf(it) - (it.d || 0); }
+var STATUTS = {
+  manque:{ e:"🔴", label:"En manque (réel < chargé)" },
+  exces:{ e:"🔵", label:"En excès (réel > chargé)" },
+  conforme:{ e:"🟢", label:"Conforme (écart nul)" },
+  nv:{ e:"⚪", label:"Non vérifié (pas de date de contrôle)" }
+};
+function statutOf(it){
+  if(!it.dc) return "nv";
+  var ec = ecartOf(it);
+  if(ec < 0) return "manque";
+  if(ec > 0) return "exces";
+  return "conforme";
+}
+function isAlert(it){
+  if(!it.dc) return true;
+  return ecartOf(it) !== 0;
+}
+function ecHtml(it){
+  var ec = ecartOf(it);
+  var cls = ec < 0 ? "neg" : (ec > 0 ? "pos" : "zero");
+  var t = ec > 0 ? "+" + ec : (ec < 0 ? "−" + (-ec) : "✓ 0");
+  return '<span class="ec ' + cls + '">' + t + "</span>";
+}
+function locSummary(it){
+  var out = [];
+  (it.loc || []).forEach(function(x, i){ if(x) out.push(LOCS[i].s + "×" + x); });
+  return out.join(" · ");
+}
+
+/* ---------------- persistance + fusion ---------------- */
+var _shadow = {};
+function sig(it){ return JSON.stringify([it.sec,it.nno,it.lib,it.d,it.loc,it.dc,it.obs,JSON.stringify(it.hist||[])]); }
+function primeShadow(){ _shadow = {}; state.items.forEach(function(it){ _shadow[it.id] = sig(it); }); }
+function stampUpdates(){ state.items.forEach(function(it){ if(_shadow[it.id] !== sig(it)) it.u = Date.now(); }); }
+function persist(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch(e){ toast("⚠️ Stockage plein — fais un export fichier immédiatement"); }
+}
+var _dirty = false, _saveSeq = 0, driveTimer = null, driveSending = false, driveSendingAt = 0;
+function save(){
+  stampUpdates(); primeShadow(); persist();
+  _dirty = true; _saveSeq++;
+  if(state.cfg.driveAuto) scheduleDriveBackup();
+}
+function scheduleDriveBackup(){
+  if(driveTimer) clearTimeout(driveTimer);
+  driveTimer = setTimeout(function(){ driveTimer = null; driveSend(false); }, 30000);
+}
+function pruneTombs(){
+  var cutoff = Date.now() - 180*86400000;
+  Object.keys(state.tombs).forEach(function(id){ if(state.tombs[id] < cutoff) delete state.tombs[id]; });
+}
+function mergeRemote(remote){
+  var added=0, changed=0, removed=0;
+  if(!remote || !Array.isArray(remote.items)) return { added:0, changed:0, removed:0 };
+  var byId = {}; state.items.forEach(function(it){ byId[it.id] = it; });
+  remote.items.forEach(function(rit){
+    if(!Array.isArray(rit.loc)) rit.loc = [];
+    while(rit.loc.length < LOCS.length) rit.loc.push(null);
+    if(!rit.hist) rit.hist = [];
+    var lit = byId[rit.id];
+    if(!lit){ if(!state.tombs[rit.id] || (rit.u||0) > state.tombs[rit.id]){ state.items.push(rit); added++; } return; }
+    if((rit.u||0) > (lit.u||0)){ lit.sec=rit.sec; lit.nno=rit.nno; lit.lib=rit.lib; lit.d=rit.d; lit.loc=rit.loc; lit.dc=rit.dc; lit.obs=rit.obs; lit.hist=rit.hist||[]; lit.u=rit.u; changed++; }
+  });
+  var rtombs = remote.tombs || {};
+  state.items = state.items.filter(function(it){
+    if(rtombs[it.id] && rtombs[it.id] > (it.u||0)){ removed++; return false; }
+    return true;
+  });
+  Object.keys(rtombs).forEach(function(id){ if(rtombs[id] > (state.tombs[id]||0)) state.tombs[id] = rtombs[id]; });
+  mergeLogs(remote ? remote.log : []);
+  pruneTombs();
+  return { added:added, changed:changed, removed:removed };
+}
+
+/* ---------------- rendu ---------------- */
+function E(id){ var e = document.getElementById(id); return e; }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function escAttr(s){ return esc(s).replace(/'/g,"&#39;"); }
+function sections(){
+  var seen = {}, out = [];
+  state.items.forEach(function(it){ if(!seen[it.sec]){ seen[it.sec]=1; out.push(it.sec); } });
+  return out;
+}
+function visibleItems(){
+  var f = state.cfg.statFilter, sf = state.cfg.secFilter, q = (state.cfg.q||"").toLowerCase();
+  return state.items.filter(function(it){
+    if(f !== "all" && statutOf(it) !== f) return false;
+    if(sf && it.sec !== sf) return false;
+    if(q && (it.lib||"").toLowerCase().indexOf(q) < 0 && (it.nno||"").toLowerCase().indexOf(q) < 0 && (it.obs||"").toLowerCase().indexOf(q) < 0 && (it.sec||"").toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+}
+function renderRecap(){
+  var nb = state.items.length;
+  var tr = 0, eg = 0, nv = 0;
+  state.items.forEach(function(it){ tr += reelOf(it); eg += ecartOf(it); if(!it.dc) nv++; });
+  var egCls = eg > 0 ? "eg-pos" : (eg < 0 ? "eg-neg" : "eg-zero");
+  var egTxt = eg > 0 ? "+" + eg : (eg < 0 ? "−" + (-eg) : "0");
+  E("recap").innerHTML =
+    '<span>📋 NB RÉFÉRENCES <b>' + nb + "</b></span>"
+    + '<span>Σ TOTAL RÉEL <b>' + tr + "</b></span>"
+    + '<span>ÉCART GLOBAL <b class="' + egCls + '">' + egTxt + "</b></span>"
+    + '<span>NON VÉRIFIÉ <b>' + nv + "</b></span>"
+    + '<span>MAJ origine <b>' + MAJ_ORIGINE + "</b></span>";
+}
+function renderStats(){
+  var counts = { manque:0, exces:0, conforme:0, nv:0 };
+  state.items.forEach(function(it){ counts[statutOf(it)]++; });
+  var defs = [
+    ["manque","🔴","Manques"],
+    ["exces","🔵","Excès"],
+    ["conforme","🟢","Conformes"],
+    ["nv","⚪","Non vérifiés"]
+  ];
+  var f = state.cfg.statFilter;
+  E("stats").innerHTML = defs.map(function(d){
+    return '<div class="stat k-' + d[0] + (f===d[0]?" on":"") + '" onclick="setStatFilter(\'' + d[0] + '\')">'
+      + '<div class="n">' + d[1] + " " + counts[d[0]] + '</div><div class="l">' + d[2] + "</div></div>";
+  }).join("");
+  E("hSub").textContent = state.items.length + " références · recalcul en direct";
+}
+function setStatFilter(k){ state.cfg.statFilter = (state.cfg.statFilter === k) ? "all" : k; persist(); renderAll(); }
+function renderSecSel(){
+  var sel = E("secSel");
+  var cur = state.cfg.secFilter;
+  sel.innerHTML = '<option value="">Toutes sections</option>' + sections().map(function(s){
+    return '<option value="' + escAttr(s) + '"' + (s===cur?" selected":"") + '>' + esc(s) + "</option>";
+  }).join("");
+  E("secList").innerHTML = sections().map(function(s){ return '<option value="' + escAttr(s) + '">'; }).join("");
+}
+function renderList(){
+  var items = visibleItems();
+  var groups = {}, order = [];
+  items.forEach(function(it){ if(!groups[it.sec]){ groups[it.sec] = []; order.push(it.sec); } groups[it.sec].push(it); });
+  var h = [];
+  if(!items.length) h.push('<div id="empty">Aucune référence ne correspond</div>');
+  order.forEach(function(sec){
+    var col = !!state.cfg.collapsed[sec];
+    var g = groups[sec];
+    var nb = { manque:0, exces:0, conforme:0, nv:0 };
+    g.forEach(function(it){ nb[statutOf(it)]++; });
+    h.push('<div class="sech" onclick="toggleSec(\'' + escAttr(sec) + '\')"><h3>' + esc(sec) + "</h3>"
+      + '<span class="cnt">' + g.length + ' réf. · 🔴' + nb.manque + " 🔵" + nb.exces + " 🟢" + nb.conforme + " ⚪" + nb.nv + "</span>"
+      + '<span class="tri">' + (col?"▸":"▾") + "</span></div>");
+    if(!col) g.forEach(function(it){
+      var k = statutOf(it);
+      var ls = locSummary(it);
+      h.push('<div class="item k-' + k + '">'
+        + '<div class="txt" onclick="openItem(\'' + it.id + '\')">'
+        + '<div class="mat">' + STATUTS[k].e + " " + esc(it.lib || "(sans libellé)") + "</div>"
+        + '<div class="meta">' + (it.nno ? esc(it.nno) + " · " : "") + "chargé " + (it.d==null?"—":it.d)
+          + (it.dc ? " · ✔ " + fmtDate(it.dc) : " · jamais vérifié")
+          + (ls ? " · " + esc(ls) : "")
+          + (it.obs ? " · 📝 " + esc(it.obs) : "") + "</div></div>"
+        + '<div class="num"><span class="reel">réel ' + reelOf(it) + "</span>" + ecHtml(it) + "</div>"
+        + '<button class="chkbtn" onclick="quickVerif(\'' + it.id + '\')" title="Vérifié aujourd\'hui">✔</button>'
+        + "</div>");
+    });
+  });
+  E("list").innerHTML = h.join("");
+}
+function toggleSec(sec){
+  state.cfg.collapsed[sec] = !state.cfg.collapsed[sec];
+  persist(); renderList();
+}
+function renderBackupCard(){
+  var cfgOk = state.cfg.dCid && state.cfg.dRefresh;
+  var ago = state.driveSyncedAt ? "il y a " + agoTxt(state.driveSyncedAt) : "jamais";
+  E("backupCard").innerHTML =
+    "<b>☁️ Sauvegarde Google Drive</b>"
+    + '<div class="syncline">App version ' + APP_VERSION + " · " + state.items.length + " références</div>"
+    + '<div class="syncline">' + (cfgOk ? "Dossier « " + esc(state.cfg.dFolder||"taffbmpm") + " » · dernière sauvegarde : " + ago : "Non configurée — données uniquement sur cet appareil") + "</div>"
+    + '<button class="btn pri" onclick="driveSend(true)">☁️ ' + (cfgOk ? "Sauvegarder maintenant" : "Configurer et sauvegarder") + "</button>"
+    + "<details><summary>⚙️ Options (Drive, export, restauration)</summary>"
+    + '<label class="f">Client ID Google</label><input class="f" id="dCid" value="' + escAttr(state.cfg.dCid) + '">'
+    + '<label class="f">Client Secret (optionnel)</label><input class="f" id="dSecret" value="' + escAttr(state.cfg.dSecret) + '">'
+    + '<label class="f">Refresh Token (drive.file — OAuth Playground)</label><input class="f" id="dRefresh" value="' + escAttr(state.cfg.dRefresh) + '">'
+    + '<label class="f">Nom du dossier Drive</label><input class="f" id="dFolder" value="' + escAttr(state.cfg.dFolder||"taffbmpm") + '">'
+    + '<div style="height:8px"></div>'
+    + '<button class="btn" onclick="saveDriveCfg()">💾 Enregistrer la config</button> '
+    + '<button class="btn ghost" onclick="driveDisconnect()">Déconnecter</button>'
+    + '<div style="height:8px"></div>'
+    + '<button class="btn" onclick="driveRestore()">⬇️ Restaurer depuis Drive</button> '
+    + '<button class="btn" onclick="exportFile()">📤 Exporter (JSON)</button> '
+    + '<button class="btn" onclick="exportCsv()">📄 Exporter CSV (Excel)</button>'
+    + '<label class="f" style="margin-top:10px"><input type="checkbox" id="dAuto"' + (state.cfg.driveAuto?" checked":"") + ' onchange="toggleAuto()"> Sauvegarde automatique (30 s après chaque modification)</label>'
+    + '<div class="syncline">Import fichier (JSON) : <input type="file" id="impFile" accept=".json,application/json" style="font-size:12px"></div>'
+    + "</details>";
+  E("impFile").addEventListener("change", importFile);
+  renderPill();
+}
+function agoTxt(ts){
+  var m = Math.round((Date.now()-ts)/60000);
+  if(m < 1) return "à l'instant";
+  if(m < 60) return m + " min";
+  return Math.round(m/60) + " h";
+}
+function renderPill(){
+  var p = E("drivePill");
+  if(!(state.cfg.dCid && state.cfg.dRefresh)){ p.className = "pill"; p.textContent = "📴 local"; return; }
+  p.className = "pill " + (state.driveSyncedAt ? "ok" : "warn");
+  p.textContent = _dirty ? "☁️ à envoyer" : "☁️ à jour";
+}
+function renderAll(){ renderAlerts(); renderRecap(); renderStats(); renderSecSel(); renderList(); renderBackupCard(); if(openId) refreshPreview(); }
+
+/* ---------------- toast + annuler ---------------- */
+var toastTimer = null;
+function toast(msg, action, fn){
+  var t = E("toast");
+  t.innerHTML = esc(msg) + (action ? '<button onclick="_toastAction()">' + esc(action) + "</button>" : "");
+  t.style.display = "block";
+  window._toastAction = fn ? function(){ t.style.display = "none"; fn(); } : null;
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.style.display = "none"; }, action ? 6000 : 3200);
+}
+var _undo = null;
+function undoLast(){
+  if(!_undo) return;
+  if(_undo.type === "verif"){
+    var it = getIt(_undo.id);
+    if(it){ logAdd("annulation", it, [["Date contrôle", it.dc || "—", _undo.dc || "—"]]); it.dc = _undo.dc; it.hist = _undo.hist; save(); }
+  } else if(_undo.type === "del"){
+    logAdd("annulation", _undo.item, [["Référence", "supprimée", "restaurée"]]);
+    delete state.tombs[_undo.item.id];
+    state.items.push(_undo.item); save();
+  }
+  _undo = null; renderAll();
+}
+
+/* ---------------- journal des modifications ---------------- */
+var LOG_CAP = 500;
+var ACT_E = { verif:"✅", edit:"✏️", ajout:"➕", suppression:"🗑️", annulation:"↩️", import:"📥" };
+var ACT_L = { verif:"Vérification", edit:"Modification", ajout:"Ajout", suppression:"Suppression", annulation:"Annulation", import:"Import" };
+function logAdd(act, it, chg, note){
+  state.log.unshift({ t:Date.now(), id:it?it.id:null, nno:it?it.nno:"", sec:it?it.sec:"", lib:it?it.lib:"", act:act, chg:chg||[], n:note||null });
+  if(state.log.length > LOG_CAP) state.log.length = LOG_CAP;
+}
+function logKey(e){ return e.t + "|" + e.id + "|" + e.act + "|" + (e.chg && e.chg.length ? JSON.stringify(e.chg[0]) : ""); }
+function mergeLogs(remote){
+  var seen = {}, out = [];
+  state.log.concat(remote || []).forEach(function(e){ var k = logKey(e); if(!seen[k]){ seen[k] = 1; out.push(e); } });
+  out.sort(function(a,b){ return b.t - a.t; });
+  if(out.length > LOG_CAP) out.length = LOG_CAP;
+  state.log = out;
+}
+function fmtDT(ts){
+  var d = new Date(ts);
+  return d.getDate() + "/" + (d.getMonth()+1) + " " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+function openJournal(){
+  var h = state.log.map(function(e){
+    var chg = (e.chg||[]).map(function(c){ return " · " + esc(c[0]) + " : " + esc(String(c[1])) + " → " + esc(String(c[2])); }).join("");
+    return '<div class="item" style="border-left-color:var(--dim)">'
+      + '<div class="txt" style="cursor:default"><div class="mat">' + (ACT_E[e.act]||"•") + " " + esc(e.lib || (e.act === "import" ? "Inventaire complet" : "(référence supprimée)")) + "</div>"
+      + '<div class="meta">' + fmtDT(e.t)
+      + (e.sec ? " · " + esc(e.sec) : "")
+      + (e.chg && e.chg.length ? chg : "")
+      + (e.n ? " · 📝 " + esc(e.n) : "") + "</div></div></div>";
+  });
+  E("jList").innerHTML = h.length ? h.join("") : '<div id="empty">Aucune modification enregistrée pour l\'instant</div>';
+  E("jSheet").classList.add("open");
+}
+function closeJournal(){ E("jSheet").classList.remove("open"); }
+function clearJournal(){
+  if(!state.log.length) return;
+  if(!window.confirm("Effacer les " + state.log.length + " entrées du journal ?")) return;
+  state.log = []; save(); openJournal(); toast("🕘 Journal effacé");
+}
+function exportJournalCsv(){
+  function q(v){ return '"' + String(v==null?"":v).replace(/"/g,'""') + '"'; }
+  var rows = [["DATE","HEURE","ACTION","SECTION","RÉF NNO","LIBELLÉ","MODIFICATIONS","NOTE"].map(q).join(";")];
+  state.log.slice().reverse().forEach(function(e){
+    var d = new Date(e.t);
+    var chg = (e.chg||[]).map(function(c){ return c[0] + " : " + c[1] + " → " + c[2]; }).join(" ; ");
+    rows.push([d.toLocaleDateString("fr-FR"), String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"),
+      ACT_L[e.act]||e.act, e.sec||"", e.nno||"", e.lib||"", chg, e.n||""].map(q).join(";"));
+  });
+  download("journal-modifications-inventaire-" + today() + ".csv", "\uFEFF" + rows.join("\r\n"), "text/csv");
+  toast("🕘 Journal exporté — répercute-le dans l'Excel d'origine");
+}
+
+/* ---------------- alertes ---------------- */
+function alertItems(){
+  return state.items.filter(isAlert).sort(function(a,b){
+    var ra = statutOf(a), rb = statutOf(b);
+    var wa = ra === "manque" ? 0 : (ra === "nv" ? 1 : 2);
+    var wb = rb === "manque" ? 0 : (rb === "nv" ? 1 : 2);
+    if(wa !== wb) return wa - wb;
+    return Math.abs(ecartOf(b)) - Math.abs(ecartOf(a));
+  });
+}
+function renderAlerts(){
+  var items = alertItems();
+  updateBadge(items.length);
+  if(!items.length){ E("alerts").innerHTML = ""; return; }
+  var nbM = items.filter(function(i){ return statutOf(i) === "manque"; }).length;
+  var nbE = items.filter(function(i){ return statutOf(i) === "exces"; }).length;
+  var nbN = items.filter(function(i){ return statutOf(i) === "nv"; }).length;
+  var h = '<div class="alertbar"><b>🔔 Alertes : ' + items.length + " référence(s)</b> — "
+    + nbM + " en manque · " + nbE + " en excès · " + nbN + " non vérifiées</div>";
+  h += items.slice(0, 8).map(function(it){
+    var k = statutOf(it);
+    var t = k === "manque" ? "🔴 manque " + ecartOf(it) : (k === "exces" ? "🔵 excès +" + ecartOf(it) : "⚪ jamais vérifié");
+    return '<div class="item k-' + k + '">'
+      + '<div class="txt" onclick="openItem(\'' + it.id + '\')"><div class="mat">' + esc(it.lib || "(sans libellé)") + "</div>"
+      + '<div class="meta">' + (it.nno ? esc(it.nno) + " · " : "") + "chargé " + (it.d==null?"—":it.d) + " · réel " + reelOf(it) + "</div></div>"
+      + '<div class="num">' + t + "</div>"
+      + '<button class="chkbtn" onclick="quickVerif(\'' + it.id + '\')">✔</button></div>';
+  }).join("");
+  if(items.length > 8) h += '<div id="empty" style="padding:8px">+ ' + (items.length - 8) + " autres — utilise les filtres ci-dessous</div>";
+  E("alerts").innerHTML = h;
+}
+function updateBadge(n){
+  try{
+    if(navigator.setAppBadge) navigator.setAppBadge(n);
+    if(!n && navigator.clearAppBadge) navigator.clearAppBadge();
+  }catch(e){}
+}
+
+/* ---------------- fiche référence ---------------- */
+var openId = null;
+function getIt(id){ for(var i=0;i<state.items.length;i++) if(state.items[i].id===id) return state.items[i]; return null; }
+function uid(){ return "u" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function renderLocGrid(){
+  var h = LOCS.map(function(l, i){
+    return "<div><label>" + esc(l.k) + '</label><input id="fL' + i + '" type="number" min="0" step="1" inputmode="numeric" placeholder="0"></div>';
+  }).join("");
+  E("locGrid").innerHTML = h;
+}
+function openItem(id){
+  openId = id;
+  var it = id ? getIt(id) : null;
+  E("shTitle").textContent = it ? (it.lib || "Référence") : "➕ Nouvelle référence";
+  E("fSec").value = it ? (it.sec||"") : (state.cfg.secFilter || sections()[0] || "");
+  E("fNno").value = it ? (it.nno||"") : "";
+  E("fLib").value = it ? (it.lib||"") : "";
+  E("fD").value = (it && it.d != null) ? it.d : "";
+  LOCS.forEach(function(l, i){ E("fL" + i).value = (it && it.loc && it.loc[i] != null) ? it.loc[i] : ""; });
+  E("fDc").value = it ? (it.dc||"") : "";
+  E("fObs").value = it ? (it.obs||"") : "";
+  E("delBtn").style.display = it ? "block" : "none";
+  E("ctlZone").style.display = it ? "block" : "none";
+  E("ctlDate").value = today();
+  E("ctlNote").value = "";
+  renderHist(it);
+  refreshPreview();
+  E("sheet").classList.add("open");
+}
+function closeSheet(){ E("sheet").classList.remove("open"); openId = null; }
+function readForm(){
+  var loc = LOCS.map(function(l, i){
+    var v = E("fL" + i).value;
+    return v === "" ? null : Math.max(0, Math.round(+v));
+  });
+  return {
+    sec: E("fSec").value.trim() || "(sans section)",
+    nno: E("fNno").value.trim() || null,
+    lib: E("fLib").value.trim(),
+    d: E("fD").value === "" ? null : Math.max(0, Math.round(+E("fD").value)),
+    loc: loc,
+    dc: E("fDc").value || null,
+    obs: E("fObs").value.trim() || null
+  };
+}
+function refreshPreview(){
+  var f = readForm();
+  var probe = { id:openId||"probe", sec:f.sec, nno:f.nno, lib:f.lib, d:f.d, loc:f.loc, dc:f.dc, obs:f.obs, hist:[] };
+  var k = statutOf(probe);
+  E("preview").innerHTML = "TOTAL RÉEL <b>" + reelOf(probe) + "</b> · ÉCART <b>"
+    + (ecartOf(probe) > 0 ? "+" + ecartOf(probe) : ecartOf(probe)) + "</b> → " + STATUTS[k].e + " <b>" + STATUTS[k].label + "</b>";
+}
+function locDiff(a, b){
+  var chg = [];
+  LOCS.forEach(function(l, i){
+    var va = (a && a[i] == null) ? null : a[i], vb = (b && b[i] == null) ? null : b[i];
+    if(va !== vb) chg.push([l.k, va==null?"—":va, vb==null?"—":vb]);
+  });
+  return chg;
+}
+function saveItem(){
+  var f = readForm();
+  if(!f.lib){ toast("⚠️ Le libellé est obligatoire"); return; }
+  if(openId){
+    var it = getIt(openId);
+    if(!it){ closeSheet(); return; }
+    var chg = [];
+    if(it.sec !== f.sec) chg.push(["Section", it.sec, f.sec]);
+    if((it.nno||"") !== (f.nno||"")) chg.push(["Réf NNO/MAT", it.nno||"—", f.nno||"—"]);
+    if(it.lib !== f.lib) chg.push(["Libellé", it.lib, f.lib]);
+    if((it.d==null?null:it.d) !== f.d) chg.push(["Total chargé", it.d==null?"—":it.d, f.d==null?"—":f.d]);
+    chg = chg.concat(locDiff(it.loc, f.loc));
+    if((it.dc||"") !== (f.dc||"")) chg.push(["Date contrôle", it.dc||"—", f.dc||"—"]);
+    if((it.obs||"") !== (f.obs||"")) chg.push(["Observation", it.obs||"—", f.obs||"—"]);
+    it.sec=f.sec; it.nno=f.nno; it.lib=f.lib; it.d=f.d; it.loc=f.loc; it.dc=f.dc; it.obs=f.obs;
+    if(chg.length) logAdd("edit", it, chg);
+  } else {
+    var nit = { id:uid(), sec:f.sec, nno:f.nno, lib:f.lib, d:f.d, loc:f.loc, dc:f.dc, obs:f.obs, hist:[], u:Date.now() };
+    state.items.push(nit);
+    logAdd("ajout", nit, [["Libellé", "(nouveau)", f.lib], ["Section", "—", f.sec], ["Total chargé", "—", f.d==null?"—":f.d]]);
+  }
+  save(); renderAll(); closeSheet();
+  toast("💾 Référence enregistrée");
+}
+function renderHist(it){
+  var h = (it && it.hist && it.hist.length) ? it.hist.slice().reverse() : [];
+  E("histBox").innerHTML = h.length ? "<b style='font-size:13px'>🕘 Historique des vérifications</b>" + h.map(function(e){
+    return '<div class="hist">✔ ' + fmtDate(e.d) + (e.n ? " — " + esc(e.n) : "") + "</div>";
+  }).join("") : "";
+}
+function doVerif(){
+  var it = getIt(openId); if(!it) return;
+  var d = E("ctlDate").value || today();
+  var n = E("ctlNote").value.trim();
+  _undo = { type:"verif", id:it.id, dc:it.dc, hist:JSON.parse(JSON.stringify(it.hist||[])) };
+  logAdd("verif", it, [["Date contrôle", it.dc || "—", d]], n || null);
+  it.dc = d;
+  if(!it.hist) it.hist = [];
+  it.hist.push({ d:d, n:n });
+  toast("✅ Vérification du " + fmtDate(d) + " enregistrée", "Annuler", undoLast);
+  save(); renderAll(); openItem(it.id); E("ctlDate").value = today(); E("ctlNote").value = "";
+}
+function quickVerif(id){
+  var it = getIt(id); if(!it) return;
+  _undo = { type:"verif", id:it.id, dc:it.dc, hist:JSON.parse(JSON.stringify(it.hist||[])) };
+  logAdd("verif", it, [["Date contrôle", it.dc || "—", today()]], "Vérification enregistrée en un geste");
+  it.dc = today();
+  if(!it.hist) it.hist = [];
+  it.hist.push({ d:today(), n:"" });
+  save(); renderAll();
+  toast("✅ " + it.lib + " vérifié aujourd'hui", "Annuler", undoLast);
+}
+function deleteItem(){
+  var it = getIt(openId); if(!it) return;
+  if(!window.confirm("Supprimer « " + (it.lib||"") + " » ?")) return;
+  logAdd("suppression", it, [["Libellé", it.lib, "SUPPRIMÉ"], ["Total chargé", it.d==null?"—":it.d, "—"]]);
+  state.tombs[it.id] = Date.now();
+  state.items = state.items.filter(function(x){ return x.id !== it.id; });
+  _undo = { type:"del", item:JSON.parse(JSON.stringify(it)) };
+  save(); renderAll(); closeSheet();
+  toast("🗑️ Référence supprimée", "Annuler", undoLast);
+}
+
+/* ---------------- export / import ---------------- */
+function exportData(){ return JSON.stringify({ v:1, app:"sos-heli-inventaire", exported:new Date().toISOString(), items:state.items, tombs:state.tombs, log:state.log }); }
+function download(name, content, mime){
+  var blob = (content instanceof Blob) ? content : new Blob([content], { type: mime || "application/octet-stream" });
+  try{
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); try{ document.body.removeChild(a); }catch(e){} }, 800);
+  }catch(e){ toast("⚠️ Téléchargement impossible : " + (e && e.message ? e.message : e)); }
+  /* PWA installée : si le téléchargement reste invisible, proposer le partage Android */
+  try{
+    var standalone = window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
+    if(standalone && navigator.share && navigator.canShare){
+      var f = new File([blob], name, { type: blob.type || "application/octet-stream" });
+      if(navigator.canShare({ files: [f] }))
+        toast("📄 Si le fichier n'apparaît pas dans Téléchargements :", "📤 Enregistrer via Partage", function(){
+          navigator.share({ files: [f], title: name }).catch(function(){});
+        });
+    }
+  }catch(e){}
+}
+function exportFile(){ try{ download("inventaire-sos-heli-" + today() + ".json", exportData(), "application/json"); toast("📤 Fichier JSON prêt — vérifie Téléchargements"); }catch(e){ toast("⚠️ Erreur export : " + (e && e.message ? e.message : e)); } }
+function exportCsv(){ try{
+  var head = ["SECTION","RÉF NNO/MAT","LIBELLÉ","TOTAL CHARGÉ"].concat(LOCS.map(function(l){ return l.k; }))
+    .concat(["TOTAL RÉEL","ÉCART","DATE CONTRÔLE","OBSERVATION"]);
+  function q(v){ return '"' + String(v==null?"":v).replace(/"/g,'""') + '"'; }
+  var rows = [head.map(q).join(";")];
+  state.items.forEach(function(it){
+    var k = statutOf(it);
+    rows.push([it.sec, it.nno||"", it.lib, it.d==null?"":it.d]
+      .concat(it.loc.map(function(x){ return x==null?"":x; }))
+      .concat([reelOf(it), ecartOf(it), it.dc||"", it.obs||""]).map(q).join(";"));
+  });
+  download("inventaire-unique-sos-heli-" + today() + ".csv", "\uFEFF" + rows.join("\r\n"), "text/csv");
+  toast("📄 CSV exporté — ouvrable dans Excel");
+  }catch(e){ toast("⚠️ Erreur export CSV : " + (e && e.message ? e.message : e)); }
+}
+function importFile(ev){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  toast("📥 Fichier reçu : " + f.name);
+  var r = new FileReader();
+  r.onload = function(){ importJsonText(new TextDecoder().decode(r.result), true); };
+  r.readAsText(f);
+}
+function importJsonText(txt, force){
+  var data;
+  try{ data = JSON.parse(txt); }catch(e){ toast("⚠️ Fichier illisible"); return false; }
+  if(!data || !Array.isArray(data.items)){ toast("⚠️ Format inconnu"); return false; }
+  if(!force && !window.confirm("Remplacer les " + state.items.length + " références actuelles par les " + data.items.length + " du fichier ?")) return false;
+  try{ localStorage.setItem(KEY + "-secours", localStorage.getItem(KEY)); }catch(e){}
+  /* on journalise l'import APRÈS avoir chargé le journal du fichier (ancien → nouveau) */
+  var oldCount = state.items.length;
+  state.items = data.items; state.tombs = data.tombs || {}; state.log = data.log || [];
+  load.normalizeItems();
+  primeShadow(); persist();
+  logAdd("import", null, [["Références", oldCount, data.items.length]]);
+  renderAll();
+  toast("📥 " + data.items.length + " références importées");
+  return true;
+}
+function initEvents(){
+  E("q").addEventListener("input", function(){
+    state.cfg.q = E("q").value; persist(); renderList();
+  });
+  E("q").value = state.cfg.q || "";
+  E("secSel").addEventListener("change", function(){
+    state.cfg.secFilter = E("secSel").value; persist(); renderList();
+  });
+  document.addEventListener("visibilitychange", function(){
+    if(document.hidden && _dirty && driveCfgOk() && state.cfg.driveAuto) driveSend(false);
+  });
+}
+
+/* ---------------- Google Drive ---------------- */
+var _tok = null, _tokAt = 0;
+function driveCfgOk(){ return !!(state.cfg.dCid && state.cfg.dRefresh); }
+function driveToken(){
+  if(_tok && (Date.now() - _tokAt) < 50*60000) return Promise.resolve(_tok);
+  var body = "client_id=" + encodeURIComponent(state.cfg.dCid)
+    + (state.cfg.dSecret ? "&client_secret=" + encodeURIComponent(state.cfg.dSecret) : "")
+    + "&refresh_token=" + encodeURIComponent(state.cfg.dRefresh)
+    + "&grant_type=refresh_token";
+  return fetch("https://oauth2.googleapis.com/token", { method:"POST", headers:{ "Content-Type":"application/x-www-form-urlencoded" }, body:body })
+    .then(function(r){ return r.json().then(function(j){
+      if(!r.ok || !j.access_token) throw new Error(j.error_description || j.error || "token refusé");
+      _tok = j.access_token; _tokAt = Date.now(); return _tok;
+    }); });
+}
+function fetchTO(url, opts, ms){
+  var ctl = new AbortController();
+  var to = setTimeout(function(){ ctl.abort(); }, ms || 20000);
+  var o = Object.assign({}, opts || {});
+  o.signal = ctl.signal;
+  return fetch(url, o).then(function(r){ clearTimeout(to); return r; }, function(e){ clearTimeout(to); throw e; });
+}
+function driveApi(path, opts){
+  return driveToken().then(function(tok){
+    var o = Object.assign({}, opts || {});
+    o.headers = Object.assign({}, o.headers || {}, { Authorization:"Bearer " + tok });
+    return fetchTO("https://www.googleapis.com/" + path, o);
+  });
+}
+function driveFind(name, mime, parent){
+  var q = "name='" + name.replace(/'/g,"\\'") + "' and mimeType='" + mime + "' and trashed=false"
+    + (parent ? " and '" + parent + "' in parents" : "");
+  return driveApi("drive/v3/files?q=" + encodeURIComponent(q) + "&fields=files(id,name)&pageSize=5")
+    .then(function(r){ return r.json(); })
+    .then(function(j){ return (j.files && j.files[0]) ? j.files[0].id : null; });
+}
+function driveCreateFolder(name){
+  return driveApi("drive/v3/files?fields=id", { method:"POST", headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ name:name, mimeType:"application/vnd.google-apps.folder", fields:"id" }) })
+    .then(function(r){ return r.json(); }).then(function(j){ if(!j.id) throw new Error("dossier non créé"); return j.id; });
+}
+function driveFolderId(){
+  return driveFind(state.cfg.dFolder || "taffbmpm", "application/vnd.google-apps.folder")
+    .then(function(id){ return id || driveCreateFolder(state.cfg.dFolder || "taffbmpm"); });
+}
+function driveFileId(folderId){
+  return driveFind("sos-heli-inventaire.json", "application/json", folderId);
+}
+function driveDownload(fileId){
+  return driveApi("drive/v3/files/" + fileId + "?alt=media").then(function(r){ return r.text(); });
+}
+function driveUploadCreate(folderId, text){
+  var meta = JSON.stringify({ name:"sos-heli-inventaire.json", parents:[folderId] });
+  var body = "--sosb\nContent-Type: application/json; charset=UTF-8\n\n" + meta + "\n--sosb\nContent-Type: application/json\n\n" + text + "\n--sosb--";
+  return driveApi("upload/drive/v3/files?uploadType=multipart&fields=id", { method:"POST", headers:{ "Content-Type":"multipart/related; boundary=sosb" }, body:body })
+    .then(function(r){ return r.json(); });
+}
+function driveUploadUpdate(fileId, text){
+  return driveApi("upload/drive/v3/files/" + fileId + "?uploadType=media&fields=id", { method:"PATCH", headers:{ "Content-Type":"application/json" }, body:text })
+    .then(function(r){ return r.json(); });
+}
+function driveSend(manual){
+  if(!driveCfgOk()){
+    if(manual) toast("⚙️ Configure le Drive dans les options ci-dessous");
+    return Promise.resolve();
+  }
+  if(manual) toast("⏳ Sauvegarde Drive en cours…");
+  if(driveSending){
+    if(Date.now() - driveSendingAt < 120000){
+      if(manual) toast("☁️ Envoi déjà en cours — celui-ci repartira juste après");
+      _saveSeq++; _dirty = true; return Promise.resolve();
+    }
+    if(manual) toast("⚠️ Un envoi semblait bloqué — nouvelle tentative");
+  }
+  driveSending = true; driveSendingAt = Date.now();
+  var seq0 = _saveSeq;
+  var myLock = driveSendingAt;
+  return driveFolderId()
+    .then(function(fid){ return driveFileId(fid).then(function(fileId){
+      var up = function(text){
+        var f = fileId ? driveUploadUpdate(fileId, text) : driveUploadCreate(fid, text);
+        return f.then(function(j){
+          if(!j.id) throw new Error("upload refusé");
+          state.driveSyncedAt = Date.now();
+          _dirty = _saveSeq > seq0;
+          persist(); renderPill(); renderBackupCard();
+          if(manual) toast("☁️ Sauvegardé sur Drive" + (_dirty ? " (d'autres changements repartiront)" : ""));
+        });
+      };
+      if(!fileId) return up(JSON.stringify({ v:1, app:"sos-heli-inventaire", items:state.items, tombs:state.tombs, log:state.log }));
+      return driveDownload(fileId).then(function(txt){
+        var remote = null;
+        try{ remote = JSON.parse(txt); }catch(e){}
+        var m = mergeRemote(remote);
+        if(m.added || m.changed || m.removed){ persist(); renderAll(); }
+        if(manual && (m.added || m.changed || m.removed))
+          toast("☁️ Fusion : +" + m.added + " ~" + m.changed + " −" + m.removed);
+        return up(JSON.stringify({ v:1, app:"sos-heli-inventaire", items:state.items, tombs:state.tombs, log:state.log }));
+      }, function(){ return up(JSON.stringify({ v:1, app:"sos-heli-inventaire", items:state.items, tombs:state.tombs, log:state.log })); });
+    }); })
+    .catch(function(e){
+      if(manual) toast("⚠️ Sauvegarde Drive impossible : " + (e && e.message ? e.message : "réseau"));
+    })
+    .then(function(){ if(driveSendingAt === myLock){ driveSending = false; } });
+}
+function driveRestore(){
+  if(!driveCfgOk()){ toast("⚙️ Configure le Drive d'abord"); return; }
+  driveFolderId().then(function(fid){
+    return driveFileId(fid).then(function(fileId){
+      if(!fileId) throw new Error("aucune sauvegarde trouvée");
+      return driveDownload(fileId);
+    });
+  }).then(function(txt){
+    importJsonText(txt, false);
+  }).catch(function(e){ toast("⚠️ Restauration impossible : " + (e && e.message ? e.message : "réseau")); });
+}
+function saveDriveCfg(){
+  state.cfg.dCid = E("dCid").value.trim();
+  state.cfg.dSecret = E("dSecret").value.trim();
+  state.cfg.dRefresh = E("dRefresh").value.trim();
+  state.cfg.dFolder = E("dFolder").value.trim() || "taffbmpm";
+  persist(); renderBackupCard();
+  if(!driveCfgOk()){ toast("⚠️ Client ID et Refresh Token obligatoires"); return; }
+  _tok = null; _tokAt = 0;
+  driveSend(true);
+}
+function driveDisconnect(){
+  state.cfg.dCid = ""; state.cfg.dSecret = ""; state.cfg.dRefresh = "";
+  _tok = null; _tokAt = 0;
+  persist(); renderBackupCard(); toast("🔌 Drive déconnecté");
+}
+function toggleAuto(){ state.cfg.driveAuto = E("dAuto").checked; persist(); }
+
+/* ---------------- boot ---------------- */
+load.normalizeItems = function(){
+  state.items.forEach(function(it){
+    if(!Array.isArray(it.loc)) it.loc = [];
+    while(it.loc.length < LOCS.length) it.loc.push(null);
+    if(!it.hist) it.hist = [];
+  });
+};
+function boot(){
+  load();
+  renderLocGrid();
+  initEvents();
+  renderAll();
+  if(driveCfgOk() && state.cfg.driveAuto) driveSend(false);
+}
+boot();
+</script>
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").then(function(reg){
+    reg.addEventListener("updatefound", function(){
+      var n = reg.installing;
+      if(n) n.addEventListener("statechange", function(){
+        if(n.state === "installed" && navigator.serviceWorker.controller) toast("🔄 Nouvelle version installée — recharge la page");
+      });
+    });
+  }).catch(function(){});
+}
+</script>
+</body>
+</html>

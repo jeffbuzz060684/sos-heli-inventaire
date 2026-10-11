@@ -1,0 +1,16 @@
+name: Tests
+on:
+  push:
+    branches: [main]
+jobs:
+  harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Harnais v1
+        run: node v1-test-harness.js index.html sw.js
+      - name: Boot DOM strict
+        run: node strict-dom-test.js index.html
