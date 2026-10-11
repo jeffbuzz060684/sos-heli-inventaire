@@ -354,10 +354,10 @@ function resetConfirm(v){ confirmAnswer = v; }
   T("L10 tombstone distante : RETENUE supprimée localement", state.items.length === nAvant - 1 && m2.removed === 1);
 
   console.log("== M. Verrous de version ==");
-  T("M1 APP_VERSION v1", APP_VERSION === "v1");
-  T("M2 SW_CACHE sos-heli-inventaire-v1", SW_CACHE === "sos-heli-inventaire-v1");
+  T("M1 APP_VERSION v1.1", APP_VERSION === "v1.1");
+  T("M2 SW_CACHE sos-heli-inventaire-v1.1", SW_CACHE === "sos-heli-inventaire-v1.1");
   T("M3 clé storage sos-heli-inventaire-v1", KEY === "sos-heli-inventaire-v1");
-  T("M4 sw.js : cache v1", swSrc.indexOf('CACHE = "sos-heli-inventaire-v1"') >= 0);
+  T("M4 sw.js : cache v1.1", swSrc.indexOf('CACHE = "sos-heli-inventaire-v1.1"') >= 0);
   T("M5 manifest : Inventaire Unique", html.indexOf("SOS HELI — Inventaire Unique") >= 0);
   T("M6 seed inline : ATLAS DFCI + TREILLIS GIMAE dans index.html", html.indexOf("ATLAS DFCI") >= 0 && html.indexOf("TREILLIS GIMAE") >= 0);
   T("M7 LOCS = 10 lieux", LOCS.length === 10 && LOCS[9].k === "BUREAU");

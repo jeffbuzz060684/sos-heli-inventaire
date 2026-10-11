@@ -1,4 +1,5 @@
-// Générateur d'icônes PNG en pur Node (zlib) — SOS HELI
+// Générateur d'icônes PNG en pur Node (zlib) — SOS HELI Inventaire
+// Logo : planche d'inventaire (clipboard) avec cases cochées — distinct de l'hélico des autres apps
 "use strict";
 const zlib = require("zlib"), fs = require("fs");
 
@@ -28,30 +29,21 @@ function png(size, file){
   const d = Buffer.alloc(S*S*4);
   // fond bleu nuit
   for(let y=0;y<S;y++) for(let x=0;x<S;x++) px(x,y,15,23,42);
-  const u = x => x/S, v = y => y/S;
-  const inCirc = (x,y,cx,cy,r) => { const dx=u(x)-cx, dy=v(y)-cy; return dx*dx+dy*dy <= r*r; };
   for(let y=0;y<S;y++) for(let x=0;x<S;x++){
-    const U=u(x), V=v(y);
-    // rotor principal (barre blanche)
-    if(V>=0.20 && V<=0.245 && U>=0.08 && U<=0.92) px(x,y,226,232,240);
-    if(U>=0.08 && U<=0.115 && V>=0.17 && V<=0.275) px(x,y,226,232,240);
-    if(U>=0.885 && U<=0.92 && V>=0.17 && V<=0.275) px(x,y,226,232,240);
-    // mât
-    if(U>=0.465 && U<=0.525 && V>=0.245 && V<=0.40) px(x,y,226,232,240);
-    // corps orange
-    if(inCirc(x,y,0.46,0.57,0.155)) px(x,y,249,115,22);
-    // bulle cockpit
-    if(inCirc(x,y,0.385,0.545,0.055)) px(x,y,147,197,253);
-    // poutail
-    if(V>=0.545 && V<=0.60 && U>=0.60 && U<=0.90) px(x,y,249,115,22);
-    // empennage
-    if(U>=0.855 && U<=0.905 && V>=0.43 && V<=0.545) px(x,y,249,115,22);
-    // rotor anticouple
-    if(inCirc(x,y,0.915,0.47,0.032)) px(x,y,226,232,240);
-    // patins
-    if(V>=0.76 && V<=0.785 && U>=0.28 && U<=0.68) px(x,y,226,232,240);
-    if(U>=0.345 && U<=0.375 && V>=0.71 && V<=0.76) px(x,y,226,232,240);
-    if(U>=0.565 && U<=0.595 && V>=0.71 && V<=0.76) px(x,y,226,232,240);
+    const U=x/S, V=y/S;
+    // clip métallique en haut (au-dessus de la planchette)
+    if(U>=0.40 && U<=0.60 && V>=0.05 && V<=0.17) px(x,y,148,163,184);
+    if(U>=0.435 && U<=0.565 && V>=0.075 && V<=0.13) px(x,y,15,23,42); // trou du clip
+    // planchette orange (corps du clipboard)
+    if(U>=0.20 && U<=0.80 && V>=0.13 && V<=0.90) px(x,y,249,115,22);
+    // feuille de papier
+    if(U>=0.27 && U<=0.73 && V>=0.24 && V<=0.86) px(x,y,226,232,240);
+    // 3 lignes de checklist : case cochée verte + ligne de texte
+    for(let i=0;i<3;i++){
+      const y0 = 0.32 + i*0.18;
+      if(U>=0.315 && U<=0.415 && V>=y0 && V<=y0+0.095) px(x,y,34,197,94);
+      if(U>=0.46 && U<=0.68 && V>=y0+0.025 && V<=y0+0.06) px(x,y,100,116,139);
+    }
   }
   // scanlines
   const raw = Buffer.alloc(S*(S*4+1));
