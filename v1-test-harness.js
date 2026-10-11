@@ -353,11 +353,94 @@ function resetConfirm(v){ confirmAnswer = v; }
   var m2 = mergeRemote(remoteTombs);
   T("L10 tombstone distante : RETENUE supprimée localement", state.items.length === nAvant - 1 && m2.removed === 1);
 
+
+  console.log("== L-x. Export Excel (.xlsx) — feuille identique à l'original ==");
+  let xCap = null;
+  const xDl = global.download;
+  global.download = (name, content) => { xCap = { name, content }; };
+  exportXlsx();
+  const xb = xCap.content;
+  T("xlsx : signature ZIP (PK)", xb && xb.length > 4 && xb[0] === 0x50 && xb[1] === 0x4B && xb[2] === 0x03 && xb[3] === 0x04);
+  T("xlsx : nom de fichier INVENTAIRE UNIQUE-AAAA-MM-JJ.xlsx", xCap.name === "INVENTAIRE UNIQUE-" + today() + ".xlsx");
+  const zlib = require("zlib");
+  function unzipN(u8){
+    const files = {};
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    let eocd = -1;
+    for(let i = u8.length - 22; i >= 0; i--){ if(dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; } }
+    if(eocd < 0) throw new Error("EOCD introuvable");
+    const count = dv.getUint16(eocd + 10, true);
+    let off = dv.getUint32(eocd + 16, true);
+    for(let k = 0; k < count; k++){
+      const method = dv.getUint16(off + 10, true), csize = dv.getUint32(off + 20, true);
+      const nlen = dv.getUint16(off + 28, true), elen = dv.getUint16(off + 30, true), clen = dv.getUint16(off + 32, true);
+      const lho = dv.getUint32(off + 42, true);
+      const name = Buffer.from(u8.subarray(off + 46, off + 46 + nlen)).toString("utf8");
+      const lnlen = dv.getUint16(lho + 26, true), lelen = dv.getUint16(lho + 28, true);
+      let data = u8.subarray(lho + 30 + lnlen + lelen, lho + 30 + lnlen + lelen + csize);
+      if(method === 8) data = zlib.inflateRawSync(Buffer.from(data));
+      else if(method !== 0) throw new Error("méthode " + method);
+      files[name] = Buffer.from(data);
+      off += 46 + nlen + elen + clen;
+    }
+    return files;
+  }
+  const xf = unzipN(new Uint8Array(xb));
+  T("xlsx : 8 fichiers du package OOXML", Object.keys(xf).length === 8 && !!xf["[Content_Types].xml"] && !!xf["xl/worksheets/sheet1.xml"] && !!xf["xl/styles.xml"] && !!xf["docProps/core.xml"]);
+  const wbx = xf["xl/workbook.xml"].toString("utf8");
+  const sx = xf["xl/worksheets/sheet1.xml"].toString("utf8");
+  const stx = xf["xl/styles.xml"].toString("utf8");
+  T("xlsx : feuille « INVENTAIRE UNIQUE »", wbx.includes('name="INVENTAIRE UNIQUE"'));
+  T("xlsx : recalcul forcé à l'ouverture (formules vivantes)", wbx.includes('fullCalcOnLoad="1"'));
+  const nX = state.items.length;
+  const sReel = state.items.reduce((a, it) => a + reelOf(it), 0);
+  const sEcart = state.items.reduce((a, it) => a + ecartOf(it), 0);
+  const sNv = state.items.filter(it => !it.dc).length;
+  const LROW = Math.max(299, 8 + nX + 1);
+  T("xlsx : titre + sous-titre d'origine (lignes 1-2)", sx.includes("INVENTAIRE UNIQUE — SOS HÉLIPORTE") && sx.includes("RÉCAPITULATION GESTIONNAIRE — DOCUMENTATION • TRANSMISSION • INCENDIE"));
+  T("xlsx : compteurs ligne 5 avec formules vivantes d'origine", sx.includes("<f>COUNTA(B8:B" + LROW + ")</f>") && sx.includes("<f>SUM(O8:O" + LROW + ")</f>") && sx.includes("<f>SUM(P8:P" + LROW + ")</f>") && sx.includes('COUNTIFS(B8:B' + LROW + ',&quot;&lt;&gt;&quot;,Q8:Q' + LROW + ',&quot;&quot;)'));
+  T("xlsx : compteurs en cache = état courant (" + nX + " réf)", sx.includes("<f>COUNTA(B8:B" + LROW + ")</f><v>" + nX + "</v>") && sx.includes("<f>SUM(O8:O" + LROW + ")</f><v>" + sReel + "</v>") && sx.includes("<f>SUM(P8:P" + LROW + ")</f><v>" + sEcart + "</v>"));
+  T("xlsx : non vérifiés en cache", sx.includes(',&quot;&lt;&gt;&quot;,Q8:Q' + LROW + ',&quot;&quot;)</f><v>' + sNv + "</v>"));
+  const td = today();
+  T("xlsx : MAJ du jour en Q5 (comme l'original, date en texte)", sx.includes("<c r=\"Q5\" s=\"7\" t=\"inlineStr\"><is><t>" + td.slice(8,10) + "/" + td.slice(5,7) + "/" + td.slice(0,4) + "</t>"));
+  T("xlsx : 18 en-têtes ligne 7 identiques à l'original", sx.includes("RÉFÉRENCE NNO/MAT") && sx.includes("LIBELLÉ") && sx.includes("TOTAL CHARGÉ") && sx.includes("CMDIH") && sx.includes("VRCG") && sx.includes("VHR") && sx.includes("VL 75") && sx.includes("CM IBN LVN") && sx.includes("CM IBN GIMAE") && sx.includes("GRANDE SOUTE") && sx.includes("SOUTE HELI") && sx.includes("SOUTE GIMAE") && sx.includes("BUREAU") && sx.includes("ÉCART") && sx.includes("DATE CONTRÔLE") && sx.includes("OBSERVATION"));
+  const it0 = state.items[0];
+  T("xlsx : 1re référence ligne 8 (A-D : section, NNO, libellé, total chargé)", sx.includes('r="A8" s="' + ({DOCUMENTATION:18, TRANSMISSION:19, INCENDIE:20}[it0.sec] || 21) + '" t="inlineStr"><is><t>' + it0.sec + "</t>") && sx.includes('r="B8" s="22" t="inlineStr"><is><t>' + it0.nno + "</t>") && sx.includes('r="C8" s="22" t="inlineStr"><is><t>' + it0.lib + "</t>") && sx.includes('r="D8" s="23"><v>' + it0.d + "</v>"));
+  T("xlsx : formules vivantes O8=SUM(E8:N8) et P8=O8-D8 comme l'original", sx.includes("<c r=\"O8\" s=\"27\"><f>SUM(E8:N8)</f><v>" + reelOf(it0) + "</v></c>") && sx.includes("<c r=\"P8\" s=\"25\"><f>O8-D8</f><v>" + ecartOf(it0) + "</v></c>"));
+  T("xlsx : date de contrôle en série Excel (Q8)", it0.dc ? sx.includes('<c r="Q8" s="28"><v>' + isoToSerial(it0.dc) + "</v></c>") : sx.includes('<c r="Q8" s="28"/>'));
+  const ti = state.items.findIndex(it => it.lib === "TREILLIS GIMAE");
+  if(ti >= 0){
+    const rT = 8 + ti;
+    T("xlsx : TREILLIS GIMAE — SOUTE GIMAE 300, O et P vivants", sx.includes('<c r="M' + rT + '" s="25"><v>300</v></c>') && sx.includes("<c r=\"O" + rT + '" s="27"><f>SUM(E' + rT + ":N" + rT + ")</f><v>300</v></c>") && sx.includes("<c r=\"P" + rT + '" s="25"><f>O' + rT + "-D" + rT + "</f><v>300</v></c>"));
+  } else T("xlsx : TREILLIS GIMAE absent — ignoré", true);
+  const neg = state.items.findIndex(it => ecartOf(it) < 0);
+  if(neg >= 0){
+    const rN = 8 + neg;
+    T("xlsx : écart négatif en cache (P" + rN + ")", sx.includes("<c r=\"P" + rN + '" s="25"><f>O' + rN + "-D" + rN + "</f><v>" + ecartOf(state.items[neg]) + "</v></c>"));
+  } else T("xlsx : aucun écart négatif — ignoré", true);
+  T("xlsx : " + LROW + " lignes (en-têtes + données + lignes bordées jusqu'à 299)", (sx.match(/<row r=/g) || []).length === LROW);
+  T("xlsx : lignes de données toutes à hauteur 14.25 comme l'original", (sx.match(/ht="14.25"/g) || []).length === LROW - 7);
+  T("xlsx : formule O sur ligne vide étendue (ligne " + LROW + ")", sx.includes("<f>SUM(E" + LROW + ":N" + LROW + ")</f><v>0</v>"));
+  T("xlsx : 10 fusions d'origine", sx.includes('<mergeCells count="10">') && sx.includes('<mergeCell ref="A1:Q1"/>') && sx.includes('<mergeCell ref="A4:C4"/>') && sx.includes('<mergeCell ref="K4:N4"/>') && sx.includes('<mergeCell ref="O4:P4"/>') && sx.includes('<mergeCell ref="E5:G5"/>'));
+  T("xlsx : volet figé sous la ligne 7", sx.includes('<pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>'));
+  T("xlsx : quadrillage masqué + filtre A7:Q" + LROW + " comme l'original", sx.includes('showGridLines="0"') && sx.includes('<autoFilter ref="A7:Q' + LROW + '"/>'));
+  T("xlsx : largeurs de colonnes d'origine (A 17.28, B 22, C 49.85)", sx.includes('width="17.28515625"') && sx.includes('width="22"') && sx.includes('width="49.85546875"') && sx.includes('width="32.42578125"'));
+  T("xlsx : colonnes Cle tri / Rang masquées comme l'original", sx.includes('<col min="19" max="20" width="13" hidden="1" customWidth="1"/>') && sx.includes("Cle tri") && sx.includes("Rang"));
+  T("xlsx : formules Cle tri et Rang reconstituées (S8/T8)", sx.includes('TEXT(ROW(),&quot;0000&quot;)') && sx.includes("SUMPRODUCT(($S$8:$S$" + LROW + "&lt;&gt;&quot;&quot;)*($S$8:$S$" + LROW + "&lt;=$S8))"));
+  T("xlsx : mise en forme conditionnelle sections (3 couleurs d'origine)", sx.includes('<formula>$A8="DOCUMENTATION"</formula>') && sx.includes('<formula>$A8="TRANSMISSION"</formula>') && sx.includes('<formula>$A8="INCENDIE"</formula>'));
+  T("xlsx : mise en forme conditionnelle écart (vert &gt;0, rouge &lt;0)", sx.includes('<cfRule type="cellIs" dxfId="0" priority="1" operator="greaterThan"><formula>0</formula>') && sx.includes('<cfRule type="cellIs" dxfId="1" priority="2" operator="lessThan"><formula>0</formula>'));
+  T("xlsx : validations d'origine (date Q + liste sections A)", sx.includes("DATE(2000,1,1)") && sx.includes('"DOCUMENTATION,TRANSMISSION,INCENDIE"') && sx.includes("Section invalide"));
+  T("xlsx : styles d'origine (Aptos Display 20, bleu nuit, soutes)", stx.includes('<name val="Aptos Display"/>') && stx.includes('rgb="FF17365D"') && stx.includes('rgb="FFE2F0D9"') && stx.includes('rgb="FFD9EAF7"') && stx.includes('rgb="FF92D050"') && stx.includes('rgb="FFFF0000"'));
+  T("xlsx : 30 styles de cellules du classeur exporté", stx.includes('<cellXfs count="30">'));
+  T("xlsx : pied de page impression d'origine", sx.includes("Inventaire SOS Héliporte — &amp;P / &amp;N"));
+  global.download = xDl;
+
+
   console.log("== M. Verrous de version ==");
-  T("M1 APP_VERSION v1.1", APP_VERSION === "v1.1");
-  T("M2 SW_CACHE sos-heli-inventaire-v1.1", SW_CACHE === "sos-heli-inventaire-v1.1");
+  T("M1 APP_VERSION v1.2", APP_VERSION === "v1.2");
+  T("M2 SW_CACHE sos-heli-inventaire-v1.2", SW_CACHE === "sos-heli-inventaire-v1.2");
   T("M3 clé storage sos-heli-inventaire-v1", KEY === "sos-heli-inventaire-v1");
-  T("M4 sw.js : cache v1.1", swSrc.indexOf('CACHE = "sos-heli-inventaire-v1.1"') >= 0);
+  T("M4 sw.js : cache v1.2", swSrc.indexOf('CACHE = "sos-heli-inventaire-v1.2"') >= 0);
   T("M5 manifest : Inventaire Unique", html.indexOf("SOS HELI — Inventaire Unique") >= 0);
   T("M6 seed inline : ATLAS DFCI + TREILLIS GIMAE dans index.html", html.indexOf("ATLAS DFCI") >= 0 && html.indexOf("TREILLIS GIMAE") >= 0);
   T("M7 LOCS = 10 lieux", LOCS.length === 10 && LOCS[9].k === "BUREAU");

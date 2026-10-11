@@ -42,13 +42,20 @@ un seul `index.html`, harnais de tests Node, CI GitHub Actions, service worker.
    pull-before-push + fusion par `u` (updatedAt) + tombstones 180 j,
    auto 30 s après modif, restauration + secours local, export JSON,
    export CSV complet (colonnes identiques à l'Excel).
-10. **PWA** : manifest, service worker (cache `sos-heli-inventaire-v1`),
+10. **🟩 Export Excel (.xlsx) — feuille INVENTAIRE UNIQUE à l'identique de l'original** :
+    ZIP OOXML 100 % JS (zéro dépendance), régénère en-têtes 6 lignes, couleurs
+    (Aptos Display 20, bleu nuit, sections vert/bleu pâle), 10 fusions, volet
+    figé ligne 7, filtre A7:Q299, validations (date + liste sections), mises
+    en forme conditionnelles (écart vert/rouge, sections) et **formules
+    vivantes** (O=SUM(E:N), P=O-D, compteurs ligne 5, Cle tri/Rang) — fichier
+    `INVENTAIRE UNIQUE-AAAA-MM-JJ.xlsx`, 31 tests cellule par cellule.
+11. **PWA** : manifest, service worker (cache `sos-heli-inventaire-v1.2`),
     icônes générées au build (`tools/gen-icons.js`), bannière d'erreur
     visible (`window.onerror`), export avec secours « Partage Android ».
 
 ## 🧪 Tests
 
-- `node v1-test-harness.js index.html sw.js` — **97 tests, 0 échec**
+- `node v1-test-harness.js index.html sw.js` — **128 tests, 0 échec** (dont 31 tests d'export Excel cellule par cellule)
   (seed vs Excel, formules, filtres, vérif+undo, diffs champ par champ,
   journal, exports, import round-trip, Drive pull/push/fusion/tombstones,
   verrous de version).
@@ -70,7 +77,7 @@ Client ID + Refresh Token OAuth `drive.file` (OAuth Playground), dossier
 | `index.template.html` | Template sans seed (marqueur `/*__SEED__*/`) |
 | `sw.js` | Service worker (cache `sos-heli-inventaire-v1`) |
 | `manifest.webmanifest` | Manifeste PWA |
-| `v1-test-harness.js` | Harnais Node 97 tests |
+| `v1-test-harness.js` | Harnais Node 128 tests |
 | `strict-dom-test.js` | Boot DOM strict |
 | `tools/gen-icons.js` | Icônes PNG pur Node (joué par le workflow) |
 | `.github/workflows/` | `tests.yml` (CI) + `pages.yml` (déploiement) |

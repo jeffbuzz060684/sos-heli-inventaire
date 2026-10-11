@@ -1,4 +1,4 @@
-var CACHE = "sos-heli-inventaire-v1.1";
+var CACHE = "sos-heli-inventaire-v1.2";
 self.addEventListener("install", function(e){
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(function(c){
